@@ -2,6 +2,7 @@ package cart
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -27,11 +28,19 @@ func read(r reader) func(string) (string, error) {
 type writer func(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 
 func write(w writer) func(o Order, t time.Duration) error {
+	marshal := json.Marshal
+
 	return func(o Order, t time.Duration) error {
-		_, err := w(context.Background(), o.Key, o, t).Result()
+		data, err := marshal(o)
 		if err != nil {
 			return err
 		}
+
+		_, err = w(context.Background(), o.Key, data, t).Result()
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 }

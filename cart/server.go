@@ -74,7 +74,7 @@ func WriteOrder(w OrderWriter) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var order Order
 		if err := unmarshal(c.Body(), &order); err != nil {
-			return err
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
 		if err := write(order, 0); err != nil {
