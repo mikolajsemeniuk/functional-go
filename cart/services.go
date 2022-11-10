@@ -8,39 +8,24 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type Order struct {
-	Key  string `json:"key"`
-	Name string `json:"name"`
-}
+type RedisReader func(context.Context, string) *redis.StringCmd
 
-type reader func(context.Context, string) *redis.StringCmd
-
-func read(r reader) func(string) (string, error) {
+func RedisRead(r RedisReader) func(string) (string, error) {
 	return func(key string) (string, error) {
-		result, err := r(context.Background(), key).Result()
-		if err != nil {
-			return "", err
-		}
-		return result, nil
+		return r(context.Background(), key).Result()
 	}
 }
 
-type writer func(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+type RedisWriter func(context.Context, string, interface{}, time.Duration) *redis.StatusCmd
 
-func write(w writer) func(o Order, t time.Duration) error {
-	marshal := json.Marshal
-
+func RedisWrite(w RedisWriter) func(o Order, t time.Duration) error {
 	return func(o Order, t time.Duration) error {
-		data, err := marshal(o)
+		data, err := json.Marshal(o)
 		if err != nil {
 			return err
 		}
 
 		_, err = w(context.Background(), o.Key, data, t).Result()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return err
 	}
 }

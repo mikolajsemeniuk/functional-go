@@ -30,29 +30,32 @@ type OrderReader interface {
 // @Param key path string true "key"
 // @Success 200 {object} Order
 // @Failure 404
+// @Failure 500
 // @Failure 503
 // @Router /cart/{key} [get]
 func ReadOrder(r OrderReader) fiber.Handler {
-	read := read(r.Get)
+	read := RedisRead(r.Get)
 
 	return func(c *fiber.Ctx) error {
 		key := c.Params("key")
 		order, err := read(key)
 
 		switch err {
+		case nil:
+			return c.SendString(order)
 		case redis.Nil:
 			return fiber.NewError(fiber.StatusNotFound, "order with this key not found")
 		case redis.ErrClosed:
 			return fiber.NewError(fiber.StatusServiceUnavailable, err.Error())
 		default:
-			return c.SendString(order)
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 	}
 }
 
 // OrderWriter
 type OrderWriter interface {
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Set(context.Context, string, interface{}, time.Duration) *redis.StatusCmd
 }
 
 // WriteOrder
@@ -68,12 +71,11 @@ type OrderWriter interface {
 // @Failure 503
 // @Router /cart [post]
 func WriteOrder(w OrderWriter) fiber.Handler {
-	write := write(w.Set)
-	unmarshal := json.Unmarshal
+	write := RedisWrite(w.Set)
 
 	return func(c *fiber.Ctx) error {
 		var order Order
-		if err := unmarshal(c.Body(), &order); err != nil {
+		if err := json.Unmarshal(c.Body(), &order); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 

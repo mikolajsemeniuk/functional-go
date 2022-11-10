@@ -55,6 +55,8 @@ paths:
             $ref: '#/definitions/cart.Order'
         "404":
           description: Not Found
+        "500":
+          description: Internal Server Error
         "503":
           description: Service Unavailable
       summary: Read order
