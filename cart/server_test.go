@@ -26,6 +26,10 @@ func (m *mock) Set(c context.Context, s string, i interface{}, t time.Duration) 
 	return set(c, s, i, t)
 }
 
+func TestRoute(t *testing.T) {
+	// Test route
+}
+
 func TestReadOrderOk(t *testing.T) {
 	m := &mock{}
 	get = func(context.Context, string) *redis.StringCmd {

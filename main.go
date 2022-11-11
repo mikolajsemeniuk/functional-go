@@ -9,7 +9,13 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
+	"github.com/kelseyhightower/envconfig"
 )
+
+type Settings struct {
+	Listen string `envconfig:"LISTEN" default:":5000"`
+	Redis  string `envconfig:"REDIS" default:"localhost:6379"`
+}
 
 // @title           Cart
 // @version         1.0
@@ -17,20 +23,22 @@ import (
 // @BasePath /
 // @schemes http https
 func main() {
-	storage := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
-	router := fiber.New()
-	fatal := log.Fatal
-
-	config, err := cart.NewConfig()
-	if err != nil {
-		fatal(err)
+	var settings Settings
+	if err := envconfig.Process("", &settings); err != nil {
+		log.Fatal(err)
 	}
 
-	cart.Route(storage, router)
+	storage := redis.NewClient(&redis.Options{Addr: settings.Redis})
+	router := fiber.New()
+
+	if err := cart.Route(storage, router); err != nil {
+		log.Fatal(err)
+	}
+
 	router.Get("/swagger/*", swagger.HandlerDefault)
 	router.Use(func(c *fiber.Ctx) error { return c.Status(fiber.StatusNotFound).Redirect("/swagger/index.html") })
 
-	if err := router.Listen(config.Listen); err != nil {
-		fatal(err)
+	if err := router.Listen(settings.Listen); err != nil {
+		log.Fatal(err)
 	}
 }

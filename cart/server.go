@@ -7,12 +7,18 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
+	"github.com/kelseyhightower/envconfig"
 )
 
 // Route
-func Route(s *redis.Client, r fiber.Router) {
+func Route(s *redis.Client, r fiber.Router) error {
+	if err := envconfig.Process("", &configuration); err != nil {
+		return err
+	}
+
 	r.Get("/cart/:key", ReadOrder(s))
 	r.Post("/cart", WriteOrder(s))
+	return nil
 }
 
 // OrderReader
